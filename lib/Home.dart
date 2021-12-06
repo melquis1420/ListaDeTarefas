@@ -11,10 +11,11 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   List _listaTarefas = [];
+  Map<String, dynamic> _ultimaRemovida = Map();
   TextEditingController _controllerTarefa = TextEditingController();
 
   //finds the directory where the file will be saved
-  Future <File> _getFile() async {
+  Future<File> _getFile() async {
     final diretorio = await getApplicationDocumentsDirectory();
     //print("Caminho:" + diretorio.path);
     return File("${diretorio.path}/dados.json");
@@ -64,15 +65,38 @@ class _HomeState extends State<Home> {
     });
   }
 
-  Widget criarItemLista(context, index){
-    final item = _listaTarefas[index]["titulo"];
+  Widget criarItemLista(context, index) {
+    //final item = _listaTarefas[index]["titulo"];
 
     return Dismissible(
-        key: Key(item),
+        //diferent key ever
+        key: Key(DateTime.now().millisecondsSinceEpoch.toString()),
         direction: DismissDirection.endToStart,
-        onDismissed: (direction){
+        onDismissed: (direction) {
+          _ultimaRemovida = _listaTarefas[index]; //last task recover
+
           _listaTarefas.removeAt(index);
           _salvarArquivo();
+
+          final snackbar = SnackBar(
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 5),
+            content: Text("Tarefa removida"),
+            action: SnackBarAction(
+              textColor: Colors.white,
+              label: "Desfazer",
+              onPressed: () {
+                setState(() {
+                  //put again the removed iten
+                  _listaTarefas.insert(index, _ultimaRemovida);
+                });
+                _salvarArquivo();
+              },
+            ),
+          );
+
+          //show SnackBar
+          Scaffold.of(context).showSnackBar(snackbar);
         },
         background: Container(
           color: Colors.red,
@@ -87,7 +111,7 @@ class _HomeState extends State<Home> {
             ],
           ),
         ),
-        child:  CheckboxListTile(
+        child: CheckboxListTile(
           title: Text(_listaTarefas[index]['titulo']),
           value: _listaTarefas[index]['realizada'],
           onChanged: (valorAlterado) {
@@ -103,7 +127,9 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     //_lerArquivo();
     //_salvarArquivo();
-    print("itens: " + _listaTarefas.toString());
+    //print("itens:"+DateTime.now().millisecondsSinceEpoch.toString());
+
+    //print("itens: " + _listaTarefas.toString());
     return Scaffold(
       appBar: AppBar(
         title: Text("Lista de tarefas"),
@@ -122,9 +148,7 @@ class _HomeState extends State<Home> {
                   content: TextField(
                     controller: _controllerTarefa,
                     decoration: InputDecoration(labelText: "Digite sua tarefa"),
-                    onChanged: (text) {
-                      
-                    },
+                    onChanged: (text) {},
                   ),
                   actions: [
                     FlatButton(
@@ -148,9 +172,7 @@ class _HomeState extends State<Home> {
         children: <Widget>[
           Expanded(
             child: ListView.builder(
-              itemCount: _listaTarefas.length,
-              itemBuilder: criarItemLista
-            ),
+                itemCount: _listaTarefas.length, itemBuilder: criarItemLista),
           )
         ],
       ),
